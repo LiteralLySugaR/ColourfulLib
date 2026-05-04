@@ -66,12 +66,18 @@ namespace ColourfulLib
         /// <param name="hex">Hex value, with or without a hashtag.</param>
         public CLColour(string hex)
         {
-            if (hex.StartsWith("#"))
+            if (hex.Contains("#"))
             {
-                hex.Trim('#');
+                hex = hex.Trim('#');
+            }
+            else if (hex.StartsWith("0x"))
+            {
+                hex = hex.Substring(0, 2);
             }
 
-            if (hex.Length < 6 || hex.Length % 2 == 1)
+            hex = hex.ToUpper();
+
+            if (hex.Length < 6 || hex.Length % 2 == 1 || string.IsNullOrWhiteSpace(hex) || !hex.All("0123456789ABCDEF".Contains))
             {
                 R = 0;
                 G = 0;
@@ -82,7 +88,7 @@ namespace ColourfulLib
 
             if (hex.Length > 8)
             {
-                hex.Substring(0, 8);
+                hex = hex.Substring(0, 8);
             }
 
             byte[] hexResult = new byte[hex.Length / 2];

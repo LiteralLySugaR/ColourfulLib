@@ -30,7 +30,7 @@
         }
         internal static float NormaliseByte(byte value)
         {
-            return value / 255;
+            return value / byte.MaxValue;
         }
     }
 }

@@ -1,6 +1,8 @@
 ﻿using System;
 using System.Drawing;
+using System.Drawing.Imaging;
 using System.Linq;
+using System.Runtime.InteropServices;
 
 namespace ColourfulLib
 {
@@ -12,7 +14,7 @@ namespace ColourfulLib
         public byte A { get; private set; } = 255;
 
         /// <summary>
-        /// Initialise a new colour using RGBA values.
+        /// Initialise a new colour using RGBA byte values.
         /// </summary>
         /// <param name="r">Red value (0 to 255)</param>
         /// <param name="g">Green value (0 to 255)</param>
@@ -63,14 +65,14 @@ namespace ColourfulLib
         /// <summary>
         /// Initialise a new colour using hex.
         /// </summary>
-        /// <param name="hex">Hex value, with or without a hashtag.</param>
+        /// <param name="hex">Hex value, with or without a hashtag or 0x at start.</param>
         public CLColour(string hex)
         {
             if (hex.Contains("#"))
             {
                 hex = hex.Trim('#');
             }
-            else if (hex.StartsWith("0x"))
+            if (hex.StartsWith("0x"))
             {
                 hex = hex.Substring(0, 2);
             }
@@ -115,36 +117,26 @@ namespace ColourfulLib
         }
         /* ================================================== */
         /// <summary>
-        /// Get Colour's RGB.
+        /// Get Colour's RGBA.
         /// </summary>
-        /// <param name="includeAlpha">Should the return array include Alpha/Transparency.</param>
-        /// <returns>Byte array [R,G,B,(A)]</returns>
-        public byte[] GetRGB(bool includeAlpha)
+        /// <returns>Byte array [R,G,B,A]</returns>
+        public byte[] GetRGBA()
         {
-            if (includeAlpha)
-            {
-                return new byte[4] { R, G, B, A };
-            }
-            return new byte[3] { R, G, B };
+            return new byte[4] { R, G, B, A };
         }
         /// <summary>
-        /// Get string of colour's RGB(A).
+        /// Get string of colour's RGBA.
         /// </summary>
-        /// <param name="includeAlpha">Should the return array include Alpha/Transparency.</param>
-        /// <returns>String of RGB(A) as rgba(R,G,B,A) or rgb(R,G,B)</returns>
-        public string GetRGBString(bool includeAlpha)
+        /// <returns>String of RGBA as "R,G,B,A"</returns>
+        public string GetRGBAString()
         {
-            if (includeAlpha)
-            {
-                return $"rgba({R},{G},{B},{A})";
-            }
-            return $"rgb({R},{G},{B})";
+            return $"{R},{G},{B},{A}";
         }
         /// <summary>
         /// Get Hex of this colour.
         /// </summary>
         /// <param name="withHashtag">Should the return array include hastag.</param>
-        /// <returns>Hex as string.</returns>
+        /// <returns>Hex as string</returns>
         public string GetHEX(bool withHashtag)
         {
             if (withHashtag)
@@ -156,7 +148,7 @@ namespace ColourfulLib
         /// <summary>
         /// Get Hex as array of this colour.
         /// </summary>
-        /// <returns>string array [R,G,B,A] with values as hex.</returns>
+        /// <returns>string array [R,G,B,A] with hex as values</returns>
         public string[] GetHEXArray()
         {
             return new string[4] { R.ToString("X2"), G.ToString("X2"), B.ToString("X2"), A.ToString("X2") };
@@ -164,7 +156,7 @@ namespace ColourfulLib
         /// <summary>
         /// Get colour HSVA as int array.
         /// </summary>
-        /// <returns>Int array [H,S,V,A].</returns>
+        /// <returns>Int array [H,S,V,A]</returns>
         public int[] GetHSVA()
         {
             float normalisedR = CLMath.NormaliseByte(R);
@@ -176,9 +168,9 @@ namespace ColourfulLib
 
             rgbArray.ToList().Sort();
 
-            float minRGB = rgbArray[0];
+            float minRGB = rgbArray.First();
 
-            float maxRGB = rgbArray[2];
+            float maxRGB = rgbArray.Last();
 
             float difference = maxRGB - minRGB;
 
@@ -209,11 +201,29 @@ namespace ColourfulLib
                 (int)Math.Round(hue, MidpointRounding.AwayFromZero),
                 (int)Math.Round(saturation, MidpointRounding.AwayFromZero),
                 (int)Math.Round(value, MidpointRounding.AwayFromZero),
-                ((int)Math.Round(normalisedA, MidpointRounding.AwayFromZero) * 100)
+                (int)Math.Round(normalisedA, MidpointRounding.AwayFromZero) * 100
             };
 
             return HSVA;
         }
+        /* ================================================== */
+        /// <summary>
+        /// Normalise RGBA colours.
+        /// </summary>
+        /// <returns>Float array [R,G,B,A] with values between 0 and 1</returns>
+        public float[] NormaliseSelf()
+        {
+            return new float[4] { (R / 255), (G / 255), (B / 255), (A / 255) };
+        }
+        /// <summary>
+        /// Convert to Microsoft's color.
+        /// </summary>
+        /// <returns>Microsoft's color</returns>
+        public Color GetMSColour()
+        {
+            return Color.FromArgb(A, R, G, B);
+        }
+        /* ================================================== */
         /// <summary>
         /// Convert HSVA to RGBA.
         /// </summary>
@@ -221,7 +231,7 @@ namespace ColourfulLib
         /// <param name="sat">Saturation value (0 to 100)</param>
         /// <param name="val">Value value (0 to 100)</param>
         /// <param name="alp">Alpha/Transparency value (0 to 100)</param>
-        /// <returns>Byte array [R,G,B,A].</returns>
+        /// <returns>Byte array [R,G,B,A]</returns>
         public static byte[] HSVAToRGBA(int hue, int sat, int val, int alp = 100)
         {
             float h = CLMath.Clamp(0, hue, 360);
@@ -288,57 +298,58 @@ namespace ColourfulLib
 
             return rgba;
         }
-        /* ================================================== */
         /// <summary>
-        /// Normalise RGBA colours.
-        /// </summary>
-        /// <returns>Float array [R,G,B,A] with values between 0 and 1.</returns>
-        public float[] NormaliseSelf()
-        {
-            return new float[4] { (R / 255), (G / 255), (B / 255), (A / 255) };
-        }
-        /// <summary>
-        /// Convert to Microsoft's color.
-        /// </summary>
-        /// <returns>Microsoft's color.</returns>
-        public Color ToMSColor()
-        {
-            return Color.FromArgb(A, R, G, B);
-        }
-        /* ================================================== */
-        /// <summary>
-        /// Get Bitmap's average RGBA colour.
+        /// Get Bitmap's average RGBA.
         /// </summary>
         /// <param name="bmp">Target Bitmap</param>
-        /// <returns>CLColour.</returns>
+        /// <returns>CLColour</returns>
         public static CLColour AverageImage(Bitmap bmp)
         {
+            if (bmp == null)
+            {
+                return new CLColour(0, 0, 0, 0);
+            }
+            
             int[] RgbaSum = new int[4] { 0, 0, 0, 0 };
 
             int pixelsAmount = bmp.Width * bmp.Height;
 
-            for (int h = 0; h < bmp.Height; h++)
+            Rectangle rect = new Rectangle(0, 0, bmp.Width, bmp.Height);
+
+            BitmapData bmpData = bmp.LockBits(rect, ImageLockMode.ReadOnly, PixelFormat.Format32bppArgb);
+
+            try
             {
-                for (int w = 0; w < bmp.Width; w++)
+                IntPtr ptr = bmpData.Scan0;
+
+                int bytes = Math.Abs(bmpData.Stride) * bmp.Height;
+
+                byte[] RgbaValues = new byte[bytes];
+
+                Marshal.Copy(ptr, RgbaValues, 0, bytes);
+
+                for (int i = 0; i < RgbaValues.Length; i += 4)
                 {
-                    CLColour pixelColour = new CLColour(bmp.GetPixel(w, h));
-
-                    RgbaSum[0] += pixelColour.R;
-                    RgbaSum[1] += pixelColour.G;
-                    RgbaSum[2] += pixelColour.B;
-                    RgbaSum[3] += pixelColour.A;
+                    RgbaSum[2] += RgbaValues[i];
+                    RgbaSum[1] += RgbaValues[i + 1];
+                    RgbaSum[0] += RgbaValues[i + 2];
+                    RgbaSum[3] += RgbaValues[i + 3];
                 }
+
+                byte[] RGBA = new byte[4]
+                {
+                    (byte)(RgbaSum[0] / pixelsAmount),
+                    (byte)(RgbaSum[1] / pixelsAmount),
+                    (byte)(RgbaSum[2] / pixelsAmount),
+                    (byte)(RgbaSum[3] / pixelsAmount)
+                };
+
+                return new CLColour(RGBA[0], RGBA[1], RGBA[2], RGBA[3]);
             }
-
-            byte[] RGBA = new byte[4]
-            { 
-                (byte)(RgbaSum[0] / pixelsAmount), 
-                (byte)(RgbaSum[1] / pixelsAmount), 
-                (byte)(RgbaSum[2] / pixelsAmount), 
-                (byte)(RgbaSum[3] / pixelsAmount)
-            };
-
-            return new CLColour(RGBA[0], RGBA[1], RGBA[2], RGBA[3]);
+            finally
+            {
+                bmp.UnlockBits(bmpData);
+            }
         }
         /// <summary>
         /// Get Bitmap's average HSVA colour.
@@ -347,7 +358,7 @@ namespace ColourfulLib
         /// <returns>int array [H,S,V,A]</returns>
         public static int[] AverageImageHSVA(Bitmap bmp)
         {
-            byte[] RGBA = CLColour.AverageImage(bmp).GetRGB(true);
+            byte[] RGBA = AverageImage(bmp).GetRGBA();
 
             return new CLColour(RGBA[0], RGBA[1], RGBA[2], RGBA[3]).GetHSVA();
         }

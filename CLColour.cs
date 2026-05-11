@@ -65,16 +65,12 @@ namespace ColourfulLib
         /// <summary>
         /// Initialise a new colour using hex.
         /// </summary>
-        /// <param name="hex">Hex value, with or without a hashtag or 0x at start.</param>
+        /// <param name="hex">Hex value, with or without a hashtag at start.</param>
         public CLColour(string hex)
         {
             if (hex.Contains("#"))
             {
                 hex = hex.Trim('#');
-            }
-            if (hex.StartsWith("0x"))
-            {
-                hex = hex.Substring(0, 2);
             }
 
             hex = hex.ToUpper();
@@ -114,6 +110,70 @@ namespace ColourfulLib
             {
                 A = (byte)CLMath.Clamp(0, hexResult[3], 255);
             }
+        }
+        /// <summary>
+        /// Initialise new CLColour using RGBA string separated by a splitChr.
+        /// </summary>
+        /// <param name="RgbaStr">Byte values joint with splitChr</param>
+        /// <param name="splitChr">Char that separates byte values</param>
+        /// <param name="isHSVA">Optional, the RgbaStr will be treated as HSVA</param>
+        public CLColour(string RgbaStr, char splitChr, bool isHSVA = false)
+        {
+            string mainStr = new string(RgbaStr.Where(c => char.IsDigit(c) || c.Equals(splitChr)).ToArray());
+
+            string[] strArray = mainStr.Split(splitChr);
+
+            if (strArray.Length < 3)
+            {
+                R = 0;
+                G = 0;
+                B = 0;
+                A = 0;
+                return;
+            }
+
+            byte[] rgbaBytes = new byte[4]
+            {
+                Convert.ToByte(strArray[0]),
+                Convert.ToByte(strArray[1]),
+                Convert.ToByte(strArray[2]),
+                255
+            };
+
+            if (isHSVA)
+            {
+                int[] hsvaArray = new int[4]
+                {
+                    Convert.ToInt32(strArray[0]),
+                    Convert.ToInt32(strArray[1]),
+                    Convert.ToInt32(strArray[2]),
+                    100
+                };
+
+                if (strArray.Length > 3)
+                {
+                    hsvaArray[3] = Convert.ToInt32(strArray[3]);
+                }
+
+                rgbaBytes = HSVAToRGBA(hsvaArray[0], hsvaArray[1], hsvaArray[2], hsvaArray[3]);
+
+                R = rgbaBytes[0];
+                G = rgbaBytes[1];
+                B = rgbaBytes[2];
+                A = rgbaBytes[3];
+
+                return;
+            }
+
+            if (strArray.Length > 3)
+            {
+                rgbaBytes[3] = Convert.ToByte(strArray[3]);
+            }
+
+            R = rgbaBytes[0];
+            G = rgbaBytes[1];
+            B = rgbaBytes[2];
+            A = rgbaBytes[3];
         }
         /* ================================================== */
         /// <summary>
@@ -281,7 +341,7 @@ namespace ColourfulLib
                 intG = 0;
                 intB = chroma;
             }
-            if (300 <= h && h < 360)
+            if (300 <= h && h <= 360)
             {
                 intR = chroma;
                 intG = 0;

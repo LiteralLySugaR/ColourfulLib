@@ -197,7 +197,7 @@ namespace ColourfulLib
         /// </summary>
         /// <param name="withHashtag">Should the return array include hastag.</param>
         /// <returns>Hex as string</returns>
-        public string GetHEX(bool withHashtag)
+        public string GetHEX(bool withHashtag = false)
         {
             if (withHashtag)
             {
@@ -273,7 +273,7 @@ namespace ColourfulLib
         /// <returns>Float array [R,G,B,A] with values between 0 and 1</returns>
         public float[] NormaliseSelf()
         {
-            return new float[4] { (R / 255), (G / 255), (B / 255), (A / 255) };
+            return new float[4] { (R / 255f), (G / 255f), (B / 255f), (A / 255f) };
         }
         /// <summary>
         /// Convert to Microsoft's color.
